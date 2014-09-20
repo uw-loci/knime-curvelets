@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="loci.knime.curvlets.update"
+      label="LOCI Curvlet Integration"
+      version="0.1.0.qualifier">
+
+   <includes
+         id="loci.knime.curvlets.feature"
+         version="0.0.0"/>
+
+</feature>

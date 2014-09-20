@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="loci.knime.curvlets"
+      label="LOCI Curvlet Integration"
+      version="0.1.0.qualifier"
+      provider-name="University of Konstanz &amp; University of Wisconsin">
+
+   <description>
+      KNIME Image Processing - Supervised Image Segmentation
+   </description>
+
+   <copyright>
+      This feature contains work protected by copyright law.
+   </copyright>
+
+</feature>
