@@ -148,6 +148,8 @@ public class GoCAKNodeModel extends NodeModel {
 
 		// write images on disc and remember paths to them
 
+		exec.setMessage("Preparing temporary files and parameters");
+		
 		// TODO idxImg and idxBitMask may not be the same
 		int idxImg = inData[0].getDataTableSpec().findColumnIndex(
 				m_imgColumnNameModel.getStringValue());
@@ -214,6 +216,8 @@ public class GoCAKNodeModel extends NodeModel {
 
 		BufferedDataContainer imgContainer = exec
 				.createDataContainer(new DataTableSpec(createImgSpec()));
+		
+		exec.setMessage("Processing image data in matlab.");
 		try {
 			idx = 0;
 			final CloseableRowIterator it2 = inData[0].iterator();
