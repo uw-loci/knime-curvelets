@@ -4,14 +4,17 @@
      <extension
            point="org.knime.workbench.repository.categories">
         <category
+              description="LOCI Curvelets integration"
+              icon="icons/default.png"
               level-id="loci"
               name="LOCI Curvlets Integration"
-              path="/community/loci">
+              path="/community/">
         </category>
      </extension>
      <extension
            point="org.knime.workbench.repository.nodes">
         <node
+              category-path="/community/loci"
               expert-flag="false"
               factory-class="loci.knime.curvlets.nodes.gocak.GoCAKNodeFactory"
               id="loci.knime.curvlets.nodes.gocak.GoCAKNodeFactory">
