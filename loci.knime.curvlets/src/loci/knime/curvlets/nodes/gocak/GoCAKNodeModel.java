@@ -18,8 +18,11 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.eclipse.core.runtime.FileLocator;
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataColumnSpecCreator;
@@ -40,8 +43,11 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.core.node.defaultnodesettings.SettingsModelDouble;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
+import org.knime.core.util.FileUtil;
 import org.knime.knip.base.data.img.ImgPlusCell;
+import org.knime.knip.base.data.img.ImgPlusCellFactory;
 import org.knime.knip.base.data.img.ImgPlusValue;
+import org.knime.knip.io.ScifioImgSource;
 import org.knime.knip.io.nodes.imgwriter.ImgWriter;
 
 public class GoCAKNodeModel extends NodeModel {
@@ -99,11 +105,15 @@ public class GoCAKNodeModel extends NodeModel {
 	}
 
 	private DataColumnSpec[] createImgSpec() {
-		final DataColumnSpec[] spec = new DataColumnSpec[2];
+		final DataColumnSpec[] spec = new DataColumnSpec[4];
 
-		spec[0] = new DataColumnSpecCreator("Overlay", ImgPlusCell.TYPE)
+		spec[0] = new DataColumnSpecCreator("Source Image", ImgPlusCell.TYPE)
 				.createSpec();
-		spec[1] = new DataColumnSpecCreator("ProcMap", ImgPlusCell.TYPE)
+		spec[1] = new DataColumnSpecCreator("Overlay", ImgPlusCell.TYPE)
+				.createSpec();
+		spec[2] = new DataColumnSpecCreator("ProcMap", ImgPlusCell.TYPE)
+				.createSpec();
+		spec[3] = new DataColumnSpecCreator("Reconstructed", ImgPlusCell.TYPE)
 				.createSpec();
 
 		return spec;
@@ -112,38 +122,32 @@ public class GoCAKNodeModel extends NodeModel {
 	private DataColumnSpec[] createFeatureSpec() {
 		DataColumnSpec[] spec = new DataColumnSpec[FEATURE_NAMES.length + 1];
 
-		for (int i = 0; i < spec.length; i++) {
-			spec[i] = new DataColumnSpecCreator(FEATURE_NAMES[i],
+		spec[0] = new DataColumnSpecCreator("Source Image", ImgPlusCell.TYPE)
+				.createSpec();
+
+		for (int i = 1; i <= FEATURE_NAMES.length; i++) {
+			spec[i] = new DataColumnSpecCreator(FEATURE_NAMES[i - 1],
 					DoubleCell.TYPE).createSpec();
 		}
-
-		spec[FEATURE_NAMES.length] = new DataColumnSpecCreator("Source Img",
-				ImgPlusCell.TYPE).createSpec();
 
 		return spec;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	protected BufferedDataTable[] execute(BufferedDataTable[] inData,
 			ExecutionContext exec) throws Exception {
 
 		// create tmp dir
-		String tmpDirPath = System.getProperty("java.io.tmpdir") + "/cp"
+		String tmpDirPath = System.getProperty("java.io.tmpdir") + "/goCAK"
 				+ System.currentTimeMillis() + "/";
 
 		File tmpDir = new File(tmpDirPath);
 		tmpDir.mkdir();
 
 		// create temporary output directory
-		File outDir = new File(tmpDirPath + "out");
-		outDir.mkdir();
-
-		// create temporary input directory
-		File inDir = new File(tmpDirPath + "in");
-		inDir.mkdir();
 
 		// write images on disc and remember paths to them
-		final String[] imgPaths = new String[inData[0].getRowCount()];
 
 		// TODO idxImg and idxBitMask may not be the same
 		int idxImg = inData[0].getDataTableSpec().findColumnIndex(
@@ -151,7 +155,13 @@ public class GoCAKNodeModel extends NodeModel {
 		int idxBitMask = inData[0].getDataTableSpec().findColumnIndex(
 				m_bitMaskColumNameModel.getStringValue());
 
+		if (idxImg == idxBitMask) {
+			throw new IllegalArgumentException(
+					"Image and BitMask Column may not be the same");
+		}
+
 		final ImgWriter imgWriter = new ImgWriter();
+		final String[] imgNames = new String[inData[0].getRowCount()];
 
 		int idx = 0;
 		final CloseableRowIterator it = inData[0].iterator();
@@ -170,9 +180,10 @@ public class GoCAKNodeModel extends NodeModel {
 
 			final String imgName = next.getKey().getString() + ".tif";
 
-			final String imgPath = inDir.getAbsolutePath() + "/" + imgName;
+			final String imgPath = tmpDir.getAbsolutePath() + "\\" + imgName;
 
-			final String bitMaskPath = "mask for " + imgName;
+			final String bitMaskPath = tmpDir.getAbsolutePath() + "\\"
+					+ "mask for " + imgName + ".tif";
 
 			imgWriter.writeImage(value.getImgPlus(), imgPath,
 					"Tagged Image File Format (tif)", "Uncompressed", map);
@@ -180,13 +191,12 @@ public class GoCAKNodeModel extends NodeModel {
 			imgWriter.writeImage(moreValue.getImgPlus(), bitMaskPath,
 					"Tagged Image File Format (tif)", "Uncompressed", map);
 
-			imgPaths[++idx] = imgPath;
-
+			imgNames[idx++] = imgName;
 		}
 
 		// read parameters
 		final ParameterSet parameterSet = new ParameterSet(
-				outDir.getAbsolutePath(),
+				tmpDir.getAbsolutePath(),
 				null,
 				FiberModes.valueOfName(m_fiberModeModel.getStringValue()),
 				BoundaryModes.valueOfName(m_boundaryModeModel.getStringValue()),
@@ -196,7 +206,7 @@ public class GoCAKNodeModel extends NodeModel {
 						.getBooleanValue(), m_makeMapModel.getBooleanValue());
 
 		// Create parameters file
-		final File parameters = new File(inDir.getAbsolutePath()
+		final File parameters = new File(tmpDir.getAbsolutePath()
 				+ "/parameters.txt");
 		parameters.createNewFile();
 
@@ -204,52 +214,87 @@ public class GoCAKNodeModel extends NodeModel {
 				.createDataContainer(new DataTableSpec(createFeatureSpec()));
 
 		BufferedDataContainer imgContainer = exec
-				.createDataContainer(new DataTableSpec(createFeatureSpec()));
+				.createDataContainer(new DataTableSpec(createImgSpec()));
+		try {
+			idx = 0;
+			final CloseableRowIterator it2 = inData[0].iterator();
+			while (it2.hasNext()) {
+				final DataRow next = it2.next();
 
-		idx = 0;
-		final CloseableRowIterator it2 = inData[0].iterator();
-		while (it2.hasNext()) {
-			final DataRow next = it2.next();
+				parameterSet.updateImgPath(imgNames[idx]);
+				BufferedWriter writer = new BufferedWriter(new FileWriter(
+						parameters));
+				writer.append(parameterSet.createParameterString());
+				writer.close();
 
-			parameterSet.updateImgPath(imgPaths[idx]);
-			BufferedWriter writer = new BufferedWriter(new FileWriter(
-					parameters));
-			writer.append(parameterSet.createParameterString());
-			writer.close();
+				// TODO: relative path
+				ProcessBuilder processBuilder = new ProcessBuilder(
+						getGoCAKPath(), parameters.getAbsolutePath());
 
-			// run process on current file
-			ProcessBuilder processBuilder = new ProcessBuilder(
-					"/cmd goCAK.exe", parameters.getAbsolutePath());
+				Process process = processBuilder.start();
+				copy(process.getErrorStream());
+				process.waitFor();
 
-			Process process = processBuilder.start();
-			copy(process.getInputStream());
-			process.waitFor();
+				// Write results back. For now only CSV
+				BufferedReader csvReader = new BufferedReader(new FileReader(
+						new File(tmpDir.getAbsolutePath() + "/CA_Out/"
+								+ imgNames[idx].replace(".tif", "")
+								+ "_fibFeatures.csv")));
 
-			// Write results back. For now only CSV
-			BufferedReader csvReader = new BufferedReader(new FileReader(
-					new File(outDir.getAbsolutePath() + "/CA_Out/"
-							+ imgPaths[idx] + "_fibFeatures.csv")));
+				String line = null;
+				int o = 0;
+				while ((line = csvReader.readLine()) != null) {
+					String[] entries = line.split(",");
+					DataCell[] cells = new DataCell[entries.length + 1];
+					for (int i = 1; i <= entries.length; i++) {
+						cells[i] = new DoubleCell(
+								Double.valueOf(entries[i - 1]));
+					}
 
-			String line = null;
-			int o = 0;
-			while ((line = csvReader.readLine()) != null) {
-				String[] row = line.split(",");
-				DataCell[] cells = new DataCell[row.length + 1];
-				for (int i = 0; i < row.length; i++) {
-					cells[i] = new DoubleCell(Double.valueOf(row[i]));
+					cells[0] = next.getCell(idxImg);
+
+					featureContainter.addRowToTable(new DefaultRow(next
+							.getKey() + "#" + o++, cells));
 				}
 
-				cells[cells.length] = next.getCell(idxImg);
-				featureContainter.addRowToTable(new DefaultRow(next.getKey()
-						+ "#" + o, row));
+				csvReader.close();
+
+				// read created images
+				final DataCell[] imgs = new DataCell[4];
+				final ScifioImgSource imgOpener = new ScifioImgSource();
+
+				imgs[0] = next.getCell(idxImg);
+
+				imgs[1] = new ImgPlusCellFactory(exec).createCell(imgOpener
+						.getImg(tmpDir.getAbsolutePath() + "/CA_Out/"
+								+ imgNames[idx].replace(".tif", "")
+								+ "_overlay.tiff", 0));
+
+				imgs[2] = new ImgPlusCellFactory(exec).createCell(imgOpener
+						.getImg(tmpDir.getAbsolutePath() + "/CA_Out/"
+								+ imgNames[idx].replace(".tif", "")
+								+ "_procmap.tiff", 0));
+
+				imgs[3] = new ImgPlusCellFactory(exec).createCell(imgOpener
+						.getImg(tmpDir.getAbsolutePath() + "/CA_Out/"
+								+ imgNames[idx].replace(".tif", "")
+								+ "_reconstructed.tiff", 0));
+				
+				
+				imgOpener.close();
+
+				imgContainer.addRowToTable(new DefaultRow(next.getKey() + "#"
+						+ idx, imgs));
+
+				idx++;
 			}
 
-			idx++;
+		} finally {
+			FileUtils.deleteDirectory(tmpDir);
+			featureContainter.close();
+			imgContainer.close();
 		}
 
-		featureContainter.close();
-		imgContainer.close();
-		
 		return new BufferedDataTable[] { featureContainter.getTable(),
 				imgContainer.getTable() };
 	}
@@ -257,15 +302,13 @@ public class GoCAKNodeModel extends NodeModel {
 	@Override
 	protected void loadInternals(File nodeInternDir, ExecutionMonitor exec)
 			throws IOException, CanceledExecutionException {
-		// TODO Auto-generated method stub
-
+		// Nothing to do here
 	}
 
 	@Override
 	protected void saveInternals(File nodeInternDir, ExecutionMonitor exec)
 			throws IOException, CanceledExecutionException {
-		// TODO Auto-generated method stub
-
+		// Nothing to do here
 	}
 
 	@Override
@@ -319,12 +362,18 @@ public class GoCAKNodeModel extends NodeModel {
 	}
 
 	static void copy(InputStream in) throws IOException {
+		StringBuffer buffer = new StringBuffer();
 		while (true) {
 			int c = in.read();
 			if (c == -1)
 				break;
-			Logger.getLogger(GoCAKNodeModel.class).info("GoCAK: " + (char) c);
+
+			buffer.append((char) c);
 		}
+		Logger.getLogger(GoCAKNodeModel.class).info(
+				"GoCAK: " + buffer.toString());
+		System.out.println("GoCAK: " + buffer.toString());
+
 	}
 
 	class ParameterSet {
@@ -344,13 +393,13 @@ public class GoCAKNodeModel extends NodeModel {
 
 		private final double distThreshold;
 
-		private final boolean makeAssoc;
+		private final double makeAssoc;
 
-		private final boolean makeFeatFlag;
+		private final double makeFeatFlag;
 
-		private final boolean makeOverFlag;
+		private final double makeOverFlag;
 
-		private final boolean makeMapFlag;
+		private final double makeMapFlag;
 
 		private final String infoLabel = "delete later";
 
@@ -366,10 +415,10 @@ public class GoCAKNodeModel extends NodeModel {
 			this.boundaryMode = boundaryMode;
 			this.keep = keep;
 			this.distThreshold = distThreshold;
-			this.makeAssoc = makeAssoc;
-			this.makeFeatFlag = makeFeatFlag;
-			this.makeOverFlag = makeOverFlag;
-			this.makeMapFlag = makeMapFlag;
+			this.makeAssoc = makeAssoc ? 1.0 : 0.0;
+			this.makeFeatFlag = makeFeatFlag ? 1.0 : 0.0;
+			this.makeOverFlag = makeOverFlag ? 1.0 : 0.0;
+			this.makeMapFlag = makeMapFlag ? 1.0 : 0.0;
 
 		}
 
@@ -382,8 +431,8 @@ public class GoCAKNodeModel extends NodeModel {
 			buffer.append(OS + "\n");
 			buffer.append(outPath + "\n");
 			buffer.append(imgPath + "\n");
-			buffer.append(fibMode + "\n");
-			buffer.append(boundaryMode + "\n");
+			buffer.append((double) fibMode.ordinal() + "\n");
+			buffer.append((double) boundaryMode.ordinal() + "\n");
 			buffer.append(keep + "\n");
 			buffer.append(distThreshold + "\n");
 			buffer.append(makeAssoc + "\n");
@@ -395,6 +444,24 @@ public class GoCAKNodeModel extends NodeModel {
 			return buffer.toString();
 		}
 
+	}
+
+	/**
+	 * Helper Function to resolve platform urls.
+	 * 
+	 * @param _platformurl
+	 * @return the eclipse path
+	 */
+	protected String getGoCAKPath() {
+		// TODO: Adapt for various platforms
+		try {
+			final URL url = new URL(
+					"platform:/plugin/loci.knime.curvlets/res/goCAK/goCAK.exe");
+			final File exe = new File(FileLocator.resolve(url).getFile());
+			return exe.getAbsolutePath();
+		} catch (final IOException e) {
+			return null;
+		}
 	}
 
 }
