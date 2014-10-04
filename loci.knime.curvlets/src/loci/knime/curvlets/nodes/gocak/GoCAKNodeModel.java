@@ -69,7 +69,7 @@ public class GoCAKNodeModel extends NodeModel {
 			"Boundary Point Column" };
 
 	protected GoCAKNodeModel() {
-		// first port contains images (TODO, IGNORED FOR NOW)
+		// first port contains images 
 		// second port contains measurements of source images
 		// third node contains per cell statistics
 		super(1, 2);
@@ -229,7 +229,6 @@ public class GoCAKNodeModel extends NodeModel {
 				writer.append(parameterSet.createParameterString());
 				writer.close();
 
-				// TODO: relative path
 				ProcessBuilder processBuilder = new ProcessBuilder(
 						getGoCAKPath(), parameters.getAbsolutePath());
 
