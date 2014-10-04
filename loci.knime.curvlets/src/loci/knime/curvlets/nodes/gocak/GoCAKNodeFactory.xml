@@ -18,7 +18,7 @@
 
 	<ports>
 		<inPort index="0" name="Images">Images</inPort>
-		<outPort index="0" name="Overlay Images">Overlay Images</outPort>
 		<outPort index="0" name="Features">Features</outPort>
+		<outPort index="1" name="Overlay Images">Overlay Images</outPort>
 	</ports>
 </knimeNode>
