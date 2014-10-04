@@ -1,8 +1,12 @@
 package loci.knime.curvlets.nodes.gocak;
 
 public enum FiberModes {
-	CT("CT"), CTFS("CT-Fire Segments"), CTFF("CT-Fire Fibers"), CTFE(
-			"CT-FIRE Endpoints");
+	CT("CT");
+
+	// TODO: not supported yet. We need optional inport for .mat files
+	//
+	// , CTFS("CT-Fire Segments"), CTFF("CT-Fire Fibers"), CTFE(
+	// "CT-Fire Endpoints");
 
 	private String name;
 
