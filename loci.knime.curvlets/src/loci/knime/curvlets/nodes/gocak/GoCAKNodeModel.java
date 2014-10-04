@@ -43,7 +43,6 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.defaultnodesettings.SettingsModelBoolean;
 import org.knime.core.node.defaultnodesettings.SettingsModelDouble;
 import org.knime.core.node.defaultnodesettings.SettingsModelString;
-import org.knime.core.util.FileUtil;
 import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
 import org.knime.knip.base.data.img.ImgPlusValue;
@@ -221,6 +220,9 @@ public class GoCAKNodeModel extends NodeModel {
 			while (it2.hasNext()) {
 				final DataRow next = it2.next();
 
+				exec.setProgress((double) inData[0].getRowCount()
+						/ (double) idx);
+
 				parameterSet.updateImgPath(imgNames[idx]);
 				BufferedWriter writer = new BufferedWriter(new FileWriter(
 						parameters));
@@ -279,8 +281,7 @@ public class GoCAKNodeModel extends NodeModel {
 						.getImg(tmpDir.getAbsolutePath() + "/CA_Out/"
 								+ imgNames[idx].replace(".tif", "")
 								+ "_reconstructed.tiff", 0));
-				
-				
+
 				imgOpener.close();
 
 				imgContainer.addRowToTable(new DefaultRow(next.getKey() + "#"
