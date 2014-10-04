@@ -15,7 +15,7 @@ public class GoCAKSettingsModels {
 	}
 
 	static SettingsModelString createFiberModeModel() {
-		return new SettingsModelString("fiber_mode", FiberModes.CTFF.getName());
+		return new SettingsModelString("fiber_mode", FiberModes.CT.getName());
 	}
 
 	static SettingsModelString createBoundaryModel() {
