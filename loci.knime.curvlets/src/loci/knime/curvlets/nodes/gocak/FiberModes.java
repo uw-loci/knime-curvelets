@@ -12,7 +12,7 @@ public enum FiberModes {
 
 	public static int ordinalForName(String name) {
 		for (FiberModes mode : values()) {
-			if (mode.name.equals(name)) {
+			if (mode.getName().equals(name)) {
 				return mode.ordinal();
 			}
 		}
@@ -32,7 +32,7 @@ public enum FiberModes {
 		final FiberModes[] values = values();
 		final String[] names = new String[values.length];
 		for (int i = 0; i < values.length; ++i) {
-			names[i] = values[i].name();
+			names[i] = values[i].getName();
 		}
 
 		return names;

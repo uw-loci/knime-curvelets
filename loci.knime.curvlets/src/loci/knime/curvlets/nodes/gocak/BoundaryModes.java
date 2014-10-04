@@ -11,7 +11,7 @@ public enum BoundaryModes {
 
 	public static int ordinalForName(String name) {
 		for (BoundaryModes mode : values()) {
-			if (mode.name.equals(name)) {
+			if (mode.getName().equals(name)) {
 				return mode.ordinal();
 			}
 		}
@@ -31,7 +31,7 @@ public enum BoundaryModes {
 		final BoundaryModes[] values = values();
 		final String[] names = new String[values.length];
 		for (int i = 0; i < values.length; ++i) {
-			names[i] = values[i].name();
+			names[i] = values[i].getName();
 		}
 
 		return names;
