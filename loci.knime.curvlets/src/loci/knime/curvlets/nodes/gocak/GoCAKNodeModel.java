@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.net.URL;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
 import org.eclipse.core.runtime.FileLocator;
 import org.knime.core.data.DataCell;
 import org.knime.core.data.DataColumnSpec;
@@ -37,6 +36,7 @@ import org.knime.core.node.CanceledExecutionException;
 import org.knime.core.node.ExecutionContext;
 import org.knime.core.node.ExecutionMonitor;
 import org.knime.core.node.InvalidSettingsException;
+import org.knime.core.node.NodeLogger;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.NodeSettingsRO;
 import org.knime.core.node.NodeSettingsWO;
@@ -374,10 +374,9 @@ public class GoCAKNodeModel extends NodeModel {
 
 			buffer.append((char) c);
 		}
-		Logger.getLogger(GoCAKNodeModel.class).info(
-				"GoCAK: " + buffer.toString());
-		System.out.println("GoCAK: " + buffer.toString());
 
+		NodeLogger.getLogger(GoCAKNodeModel.class).warn(
+				"MatLab GoCAK: " + buffer.toString());
 	}
 
 	class ParameterSet {
