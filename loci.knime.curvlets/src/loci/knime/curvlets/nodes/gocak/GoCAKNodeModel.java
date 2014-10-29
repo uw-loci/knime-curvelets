@@ -19,6 +19,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.eclipse.core.runtime.FileLocator;
@@ -50,6 +51,8 @@ import org.knime.knip.io.ScifioImgSource;
 import org.knime.knip.io.nodes.imgwriter.ImgWriter;
 
 public class GoCAKNodeModel extends NodeModel {
+
+	private static String OS = System.getProperty("os.name").toLowerCase();
 
 	final static String[] FEATURE_NAMES = new String[] {
 			"Fiber Key into CT Fire List", "End Point Row",
@@ -181,9 +184,9 @@ public class GoCAKNodeModel extends NodeModel {
 
 			final String imgName = next.getKey().getString() + ".tif";
 
-			final String imgPath = tmpDir.getAbsolutePath() + "\\" + imgName;
+			final String imgPath = tmpDir.getAbsolutePath() + File.separator + imgName;
 
-			final String bitMaskPath = tmpDir.getAbsolutePath() + "\\"
+			final String bitMaskPath = tmpDir.getAbsolutePath() + File.separator
 					+ "mask for " + imgName + ".tif";
 
 			imgWriter.writeImage(value.getImgPlus(), imgPath,
@@ -235,6 +238,7 @@ public class GoCAKNodeModel extends NodeModel {
 
 				ProcessBuilder processBuilder = new ProcessBuilder(
 						getGoCAKPath(), parameters.getAbsolutePath());
+				fillGoCAKEnv(processBuilder.environment());
 
 				Process process = processBuilder.start();
 				copy(process.getErrorStream());
@@ -302,6 +306,7 @@ public class GoCAKNodeModel extends NodeModel {
 		return new BufferedDataTable[] { featureContainter.getTable(),
 				imgContainer.getTable() };
 	}
+
 
 	@Override
 	protected void loadInternals(File nodeInternDir, ExecutionMonitor exec)
@@ -380,9 +385,7 @@ public class GoCAKNodeModel extends NodeModel {
 	}
 
 	class ParameterSet {
-
-		// TODO change later automatically by discovering OS
-		private final int OS = 1;
+		private final int OS;
 
 		private final String outPath;
 
@@ -412,6 +415,8 @@ public class GoCAKNodeModel extends NodeModel {
 				final boolean makeAssoc, final boolean makeFeatFlag,
 				final boolean makeOverFlag, final boolean makeMapFlag) {
 
+			// 0 for OSX, 1 for Windows
+			this.OS = isWindows() ? 1 : 0;
 			this.outPath = outPath;
 			this.imgPath = imgPath;
 			this.fibMode = fibMode;
@@ -448,7 +453,7 @@ public class GoCAKNodeModel extends NodeModel {
 		}
 
 	}
-
+	
 	/**
 	 * Helper Function to resolve platform urls.
 	 * 
@@ -458,8 +463,17 @@ public class GoCAKNodeModel extends NodeModel {
 	protected String getGoCAKPath() {
 		// TODO: Adapt for various platforms
 		try {
-			final URL url = new URL(
-					"platform:/plugin/loci.knime.curvlets/res/goCAK/goCAK.exe");
+			URL url = null;
+
+			if (isWindows()) {
+				url = new URL(
+						"platform:/plugin/loci.knime.curvlets/res/goCAK/goCAK.exe");
+
+			} else if (isMac()) {
+				url = new URL(
+						"platform:/plugin/loci.knime.curvlets/res/goCAK/goCAK.app/Contents/MacOS/goCAK");
+			}
+
 			final File exe = new File(FileLocator.resolve(url).getFile());
 			return exe.getAbsolutePath();
 		} catch (final IOException e) {
@@ -467,4 +481,43 @@ public class GoCAKNodeModel extends NodeModel {
 		}
 	}
 
+	protected void fillGoCAKEnv(Map<String, String> env) {
+		if (isMac()) {
+			try {
+				// TODO make the MCR path an option in the dialog ?
+
+				File mcr = new File(
+						"/Applications/MATLAB/MATLAB_Compiler_Runtime/");
+				if (!mcr.exists())
+					throw new IllegalStateException(
+							"No MATLAB Compiler Runtime found!");
+				
+				// Enter the version subdirectory, e.g. v716
+				if (mcr.listFiles().length == 1) {
+					mcr = mcr.listFiles()[0];
+				}
+				
+				String cwd;
+				cwd = new File(FileLocator.resolve(
+					new URL("platform:/plugin/loci.knime.curvlets/res/goCAK/")).getFile()).getAbsolutePath();
+
+				final String mcrRoot = mcr.getAbsolutePath() + File.separator;
+				env.put("DYLD_LIBRARY_PATH", cwd + ":"
+						+ mcrRoot + "runtime/maci64:" + mcrRoot + "bin/maci64:"
+						+ mcrRoot + "sys/os/maci64");
+				env.put("XAPPLRESDIR", mcrRoot + "X11/app-defaults");
+
+			} catch (IOException e) {
+				return;
+			}
+		}
+	}
+
+	private static boolean isWindows() {
+		return (OS.indexOf("win") >= 0);
+	}
+
+	private static boolean isMac() {
+		return (OS.indexOf("mac") >= 0);
+	}
 }
