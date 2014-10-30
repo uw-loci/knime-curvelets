@@ -1,0 +1,12 @@
+0
+/Users/loci/Documents/Yuming Codes/loci.goCAK.matlab/testfiles
+1B_D3_SHG_ROI_TACS3positive.tif-1.tif
+0.0
+3.0
+0.0500
+100.000
+1.0
+1.0
+1.0
+1.0
+delete later
