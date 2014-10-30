@@ -1,10 +1,12 @@
 function goCAK(CAPfile)
 %tempFolder = uigetdir(pathNameGlobal,'Select Output Directory:');
 %compile: mcc -m goCAK.m
+% compile: mcc -m goCAK.m -a ./CurveLab-2.1.2/fdct_wrapping_matlab -a ./CircStat2012a  -R '-startmsg,"Starting gocak MAC ..."'
+
 if ~isdeployed
     addpath('./CircStat2012a','./CurveLab-2.1.2/fdct_wrapping_matlab');
 end
-% OS = 1;        %numeric
+%  OS = 0;        %numeric
 % pathName = 'C:\Users\yuming\Desktop\CAA\widthandcancerprogression\Humandata_from_Jeremy with ROIs\';% string
 % fileName1 = '1B_D3_SHG_ROI_TACS3positive.tif-1.tif';    % string
 % fibMode = 1; % dropdown menu: 0: CT; 1:CT-FIRE Segments;2: CT-FIRE fibers;3:'CT-FIRE Endpoints'
