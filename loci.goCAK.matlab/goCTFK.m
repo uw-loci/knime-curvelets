@@ -2,7 +2,7 @@
 function goCTFK(CTFPfile)
 
 %Feb, 2015: modified from runMeasure() fuction in ctFIRE.m for the curvelet-knime integration
-%% headless CT-Fire to be used as a node in KNIME
+%% headless CT-FRIE to be used as a node in KNIME
 %% Input include the fiber extraction parameters including:
 % pathname,
 % filename
@@ -14,7 +14,21 @@ function goCTFK(CTFPfile)
 %        .mat file
 %        overlaid image
 %        csv files for fiber width, fiber length, fiber straightness, and fiber angle
-%%
+%% To compile:
+%  %mcc -m ctFIRE.m -a ../CurveLab-2.1.2/fdct_wrapping_matlab -a ../FIRE -a ../20130227_xlwrite
+%-a ctfDEF.mat -a ../xlscol/xlscol.m -R '-startmsg,"starting goCTFK,
+%Windows 64bit ...."'
+home;clc;
+if (~isdeployed)
+    addpath('../CurveLab-2.1.2/fdct_wrapping_matlab');
+    addpath(genpath(fullfile('../FIRE')));
+    addpath('../20130227_xlwrite');
+    addpath('.');
+    addpath('../xlscol/');
+    display('Please make sure you have downloaded the Curvelets library from http://curvelet.org')
+    
+end
+
 
 fid = fopen(CTFPfile);
 ctfDEFname = fgetl(fid);
@@ -22,7 +36,7 @@ load(ctfDEFname,'cP','ctfP');
 
 imgPath = fgetl(fid);
 imgName = fgetl(fid);
-figure; imshow(fullfile(imgPath,imgName))
+% figure; imshow(fullfile(imgPath,imgName))
 dirout = fullfile(imgPath,'ctFIREout');
 if ~exist(dirout,'dir')
     mkdir(dirout);
@@ -32,8 +46,8 @@ disp(sprintf('dirout= %s',dirout))
 cP.postp = str2num(fgetl(fid));%1 % numeric, 0: process an image; 1: post-processing an image, dimensionless
 
 ctfP.pct = str2num(fgetl(fid));%0.2            %numeric, percentile of the remaining curvelet coeffs, dimensionless
-ctfP.SS = str2num(fgetl(fid));%3;              %numeric,number of the selected scales, dimensionless  
-ctfP.value.thresh_im2 = str2num(fgetl(fid));%5 % numeric, main adjustable parameters, unit:grayscale intensity  
+ctfP.SS = str2num(fgetl(fid));%3;              %numeric,number of the selected scales, dimensionless
+ctfP.value.thresh_im2 = str2num(fgetl(fid));%5 % numeric, main adjustable parameters, unit:grayscale intensity
 ctfP.value.xlinkbox = str2num(fgetl(fid));%8 % radius of box in which to check to make sure xlink is a local max of the distance function
 ctfP.value.thresh_ext = cos(str2num(fgetl(fid))*pi/180);%70% numeric,, angle similarity required for a fiber to extend to the next point(cos(70*pi/180))
 ctfP.value.thresh_dang_L = str2num(fgetl(fid));%15; %numeric, dangler length threshold, in pixels
@@ -45,7 +59,7 @@ ctfP.value.thresh_flen = str2num(fgetl(fid)); %15 %numeric, minimum length of a 
 
 % width calculation module, should put this into the parameters file
 % initialize the width calculation parameters
- widcon = struct('wid_opt',1,'wid_mm',10,'wid_mp',6,'wid_sigma',1,'wid_max',0);
+widcon = struct('wid_opt',1,'wid_mm',10,'wid_mp',6,'wid_sigma',1,'wid_max',0);
 % widcon = cP.widcon;     % use width calculation parameters from mat data
 cP.widcon.wid_opt = str2num(fgetl(fid));%1;     % numeric,choice for width calculation, 1: use all points; 0: use the following parameters;
 cP.widcon.wid_mm = str2num(fgetl(fid));%10;     % numeric,minimum maximum fiber width
@@ -71,7 +85,7 @@ cP.lenHV = str2num(fgetl(fid)); %1;  %numeric, 1: output length , 0: don't outpu
 cP.widHV = str2num(fgetl(fid)); %1;  %numeric, 1: output width , 0: don't output width
 cP.strHV = str2num(fgetl(fid)); %1;  %numeric, 1: output straigthness , 0: don't output straightness
 
-fclose(fid);   % finish reading the parameters from the .txt file 
+fclose(fid);   % finish reading the parameters from the .txt file
 
 openimg = 1;% 1: open an image, 0: batch mode getappdata(imgOpen, 'openImg');
 openmat = 0; % 1:   open .mat file for postprocessing; 0: new analysis getappdata(imgOpen, 'openMat');
@@ -188,7 +202,7 @@ else  % process multiple files
                     %                     imshow(img,'Parent',imgAx);
                     
                     cP.slice = iss;
-                    set(infoLabel,'String','Analysis is ongoing ...');
+                    disp('Analysis is ongoing ...')
                     cP.widcon = widcon;
                     [OUTf OUTctf] = ctFIRE_1ck(imgPath,imgName,dirout,cP,ctfP);
                     soutf(:,:,iss) = OUTf;
@@ -196,8 +210,7 @@ else  % process multiple files
                 end
             end
         end
-        set(infoLabel,'String','Analysis is done');
-        
+        disp('Analysis is done');
         
     else
         
@@ -251,5 +264,5 @@ end
 %     end
 % end
 
-
+return
 end
