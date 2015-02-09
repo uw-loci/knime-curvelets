@@ -1,7 +1,7 @@
 function goCAK(CAPfile)
 %tempFolder = uigetdir(pathNameGlobal,'Select Output Directory:');
 %compile: mcc -m goCAK.m
-% compile: mcc -m goCAK.m -a ./CurveLab-2.1.2/fdct_wrapping_matlab -a ./CircStat2012a  -R '-startmsg,"Starting gocak MAC ..."'
+% compile: mcc -m goCAK.m -a ./CurveLab-2.1.2/fdct_wrapping_matlab -a ./CircStat2012a  -R '-startmsg,"Starting gocak Windows 64-bit ..."'
 
 if ~isdeployed
     addpath('./CircStat2012a','./CurveLab-2.1.2/fdct_wrapping_matlab');
@@ -61,6 +61,17 @@ makeOverFlag = str2num(fgetl(fid));   % check box
 makeMapFlag = str2num(fgetl(fid));   % check box
 infoLabel = fgetl(fid);  % string
 fclose(fid)
+
+% if loading CT-FIRE data
+if fibMode ~= 0
+    ctfFnd = '';
+    ctfFnd = checkCTFireFiles(pathName, {fileName1});
+    if (isempty(ctfFnd))
+    
+        disp('One or more CT-FIRE files are missing.');
+        return;
+    end
+end
 
 fileName = {fileName1};
 if OS == 1
