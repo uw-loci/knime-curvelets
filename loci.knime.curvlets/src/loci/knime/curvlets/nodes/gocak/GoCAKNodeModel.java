@@ -10,6 +10,8 @@ import static loci.knime.curvlets.nodes.gocak.GoCAKSettingsModels.createMakeAsso
 import static loci.knime.curvlets.nodes.gocak.GoCAKSettingsModels.createMakeFeatModel;
 import static loci.knime.curvlets.nodes.gocak.GoCAKSettingsModels.createMakeMapModel;
 import static loci.knime.curvlets.nodes.gocak.GoCAKSettingsModels.createMakeOverModel;
+import io.scif.config.SCIFIOConfig;
+import io.scif.img.ImgSaver;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -48,7 +50,6 @@ import org.knime.knip.base.data.img.ImgPlusCell;
 import org.knime.knip.base.data.img.ImgPlusCellFactory;
 import org.knime.knip.base.data.img.ImgPlusValue;
 import org.knime.knip.io.ScifioImgSource;
-import org.knime.knip.io.nodes.imgwriter.ImgWriter;
 
 public class GoCAKNodeModel extends NodeModel {
 
@@ -164,7 +165,7 @@ public class GoCAKNodeModel extends NodeModel {
 					"Image and BitMask Column may not be the same");
 		}
 
-		final ImgWriter imgWriter = new ImgWriter();
+		final ImgSaver imgSaver = new ImgSaver();
 		final String[] imgNames = new String[inData[0].getRowCount()];
 
 		int idx = 0;
@@ -176,12 +177,6 @@ public class GoCAKNodeModel extends NodeModel {
 			final ImgPlusValue<?> moreValue = (ImgPlusValue<?>) next
 					.getCell(idxBitMask);
 
-			final int[] map = new int[value.getDimensions().length];
-
-			for (int i = 0; i < map.length; i++) {
-				map[i] = i;
-			}
-
 			final String imgName = next.getKey().getString() + ".tif";
 
 			final String imgPath = tmpDir.getAbsolutePath() + File.separator + imgName;
@@ -189,11 +184,12 @@ public class GoCAKNodeModel extends NodeModel {
 			final String bitMaskPath = tmpDir.getAbsolutePath() + File.separator
 					+ "mask for " + imgName + ".tif";
 
-			imgWriter.writeImage(value.getImgPlus(), imgPath,
-					"Tagged Image File Format (tif)", "Uncompressed", map);
+			final SCIFIOConfig config = new SCIFIOConfig();
+			//TODO Set imgsaver output region from value.getDimensions()
 
-			imgWriter.writeImage(moreValue.getImgPlus(), bitMaskPath,
-					"Tagged Image File Format (tif)", "Uncompressed", map);
+			imgSaver.saveImg(imgPath, moreValue.getImgPlus(), config);
+
+			imgSaver.saveImg(bitMaskPath, moreValue.getImgPlus(), config);
 
 			imgNames[idx++] = imgName;
 		}
