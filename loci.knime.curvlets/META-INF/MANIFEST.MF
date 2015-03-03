@@ -18,7 +18,7 @@ Require-Bundle: org.knime.base;bundle-version="2.10.0",
  scifio;bundle-version="0.19.0",
  scifio-bf-compat;bundle-version="1.10.1",
  scijava-common;bundle-version="2.37.0",
- imglib2-roi;bundle-version="0.2.120150118"
+ imglib2-roi;bundle-version="0.2.1"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ClassPath: loci_curvlets.jar
 Bundle-ActivationPolicy: lazy
