@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-Name: LOCI Curvlet Integration
 Bundle-SymbolicName: loci.knime.curvlets;singleton:=true
 Bundle-ManifestVersion: 2
-Bundle-Version: 0.1.0.qualifier
+Bundle-Version: 0.2.0.qualifier
 Bundle-Vendor: University of Konstanz & University of Wisconsin
 Eclipse-RegisterBuddy: org.knime.core
 Require-Bundle: org.knime.base;bundle-version="2.10.0",
@@ -19,6 +19,6 @@ Require-Bundle: org.knime.base;bundle-version="2.10.0",
  scifio-bf-compat;bundle-version="1.10.1",
  scijava-common;bundle-version="2.37.0",
  imglib2-roi;bundle-version="0.2.1"
-Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ClassPath: loci_curvlets.jar
 Bundle-ActivationPolicy: lazy

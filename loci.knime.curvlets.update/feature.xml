@@ -2,7 +2,7 @@
 <feature
       id="loci.knime.curvlets.update"
       label="LOCI Curvlet Integration"
-      version="0.1.0.qualifier">
+      version="0.2.0.qualifier">
 
    <includes
          id="loci.knime.curvlets.feature"
