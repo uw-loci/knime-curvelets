@@ -60,7 +60,7 @@ public class GoCAKNodeModel extends NodeModel {
 	private static String OS = System.getProperty("os.name").toLowerCase();
 
 	final static String[] FEATURE_NAMES = new String[] {
-		"Fiber Key into CT Fire List", "End Point Row", "Fiber Absolute Angle",
+		"Fiber Key into CT Fire List", "End Point Row", "End Point Col", "Fiber Absolute Angle",
 		"Fiber Weight", "Total Length", "End to End Length", "Curvature", "Width",
 		"Distance to Nearest 2", "Distance to Nearest 4", "Distance to Nearest 8",
 		"Distance to Nearest 16", "Mean Nearest Distance",
