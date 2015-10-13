@@ -3,6 +3,9 @@
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
+# Temp files
+*.swp
+
 # Package Files #
 *.jar
 *.war
