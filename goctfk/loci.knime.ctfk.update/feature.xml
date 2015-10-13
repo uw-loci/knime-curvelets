@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="loci.knime.ctfk.update"
+      label="LOCI Curvelet Transform-FIRE"
+      version="0.1.0.qualifier">
+
+   <includes
+         id="loci.knime.ctfk.feature"
+         version="0.0.0"/>
+
+</feature>
