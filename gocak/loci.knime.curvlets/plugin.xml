@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+     <extension
+           point="org.knime.workbench.repository.categories">
+        <category
+              description="LOCI Curvelets integration"
+              icon="icons/default.png"
+              level-id="loci"
+              name="LOCI"
+              path="/community/">
+        </category>
+     </extension>
+     <extension
+           point="org.knime.workbench.repository.nodes">
+        <node
+              category-path="/community/loci"
+              expert-flag="false"
+              factory-class="loci.knime.curvlets.nodes.gocak.GoCAKNodeFactory"
+              id="loci.knime.curvlets.nodes.gocak.GoCAKNodeFactory">
+        </node>
+     </extension>
+</plugin>
