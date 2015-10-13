@@ -132,14 +132,11 @@ public class GoCAKNodeModel extends NodeModel {
 	}
 
 	private DataColumnSpec[] createFeatureSpec() {
-		DataColumnSpec[] spec = new DataColumnSpec[FEATURE_NAMES.length + 1];
+		DataColumnSpec[] spec = new DataColumnSpec[FEATURE_NAMES.length];
 
-		spec[0] =
-			new DataColumnSpecCreator("Source Image", ImgPlusCell.TYPE).createSpec();
-
-		for (int i = 1; i <= FEATURE_NAMES.length; i++) {
+		for (int i = 0; i < FEATURE_NAMES.length; i++) {
 			spec[i] =
-				new DataColumnSpecCreator(FEATURE_NAMES[i - 1], DoubleCell.TYPE)
+				new DataColumnSpecCreator(FEATURE_NAMES[i], DoubleCell.TYPE)
 					.createSpec();
 		}
 
@@ -263,15 +260,13 @@ public class GoCAKNodeModel extends NodeModel {
 				int o = 0;
 				while ((line = csvReader.readLine()) != null) {
 					String[] entries = line.split(",");
-					DataCell[] cells = new DataCell[entries.length + 1];
-					for (int i = 1; i <= entries.length; i++) {
-						cells[i] = new DoubleCell(Double.valueOf(entries[i - 1]));
+					DataCell[] cells = new DataCell[entries.length];
+					for (int i = 0; i < entries.length; i++) {
+						cells[i] = new DoubleCell(Double.valueOf(entries[i]));
 					}
 
-					cells[0] = next.getCell(idxImg);
-
-					featureContainter.addRowToTable(new DefaultRow(next.getKey() + "#" +
-						o++, cells));
+					featureContainter.addRowToTable(new DefaultRow("Fiber #" +
+						++o, cells));
 				}
 
 				csvReader.close();
