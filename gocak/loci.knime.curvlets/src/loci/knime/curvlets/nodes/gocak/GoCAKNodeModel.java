@@ -154,8 +154,8 @@ public class GoCAKNodeModel extends NodeModel {
 
 		// create tmp dir
 		String tmpDirPath =
-			System.getProperty("java.io.tmpdir") + "/goCAK" +
-				System.currentTimeMillis() + "/";
+			System.getProperty("java.io.tmpdir") + File.separator + "goCAK" +
+				System.currentTimeMillis() + File.separator;
 
 		File tmpDir = new File(tmpDirPath);
 		tmpDir.mkdir();
@@ -211,7 +211,7 @@ public class GoCAKNodeModel extends NodeModel {
 
 		// read CurveAlign parameters from node
 		final ParameterSet parameterSet =
-			new ParameterSet(tmpDir.getAbsolutePath(), null, fiberMode, BoundaryModes
+			new ParameterSet(tmpDir.getAbsolutePath() + File.separator, null, fiberMode, BoundaryModes
 				.valueOfName(m_boundaryModeModel.getStringValue()), m_keepModel
 				.getDoubleValue(), m_distThresholdModel.getDoubleValue(),
 				m_makeAssocModel.getBooleanValue(), m_makeFeatModel.getBooleanValue(),
@@ -250,11 +250,14 @@ public class GoCAKNodeModel extends NodeModel {
 				copy(process.getErrorStream());
 				process.waitFor();
 
+				final String outPath = tmpDir.getAbsolutePath() + File.separator +
+						"CA_Out" + File.separator;
+
 				// Write results back. For now only CSV
 				BufferedReader csvReader =
 					new BufferedReader(new FileReader(
-						new File(tmpDir.getAbsolutePath() + "/CA_Out/" +
-							imgNames[idx].replace(".tif", "") + "_fibFeatures.csv")));
+						new File( outPath + imgNames[idx].replace(".tif", "") +
+							"_fibFeatures.csv")));
 
 				String line = null;
 				int o = 0;
@@ -281,20 +284,17 @@ public class GoCAKNodeModel extends NodeModel {
 
 				imgs[1] =
 					new ImgPlusCellFactory(exec).createCell(imgOpener
-						.getImg(tmpDir.getAbsolutePath() + "/CA_Out/" +
-							imgNames[idx].replace(".tif", "") + "_overlay.tiff", 0));
+						.getImg(outPath + imgNames[idx].replace(".tif", "") +
+							"_overlay.tiff", 0));
 
 				imgs[2] =
 					new ImgPlusCellFactory(exec).createCell(imgOpener
-						.getImg(tmpDir.getAbsolutePath() + "/CA_Out/" +
-							imgNames[idx].replace(".tif", "") + "_procmap.tiff", 0));
+						.getImg(outPath + imgNames[idx].replace(".tif", "") +
+							"_procmap.tiff", 0));
 
 				imgs[3] =
-					new ImgPlusCellFactory(exec).createCell(imgOpener.getImg(tmpDir
-						.getAbsolutePath() +
-						"/CA_Out/" +
-						imgNames[idx].replace(".tif", "") +
-						"_reconstructed.tiff", 0));
+					new ImgPlusCellFactory(exec).createCell(imgOpener.getImg(outPath +
+						imgNames[idx].replace(".tif", "") + "_reconstructed.tiff", 0));
 
 				imgOpener.close();
 
