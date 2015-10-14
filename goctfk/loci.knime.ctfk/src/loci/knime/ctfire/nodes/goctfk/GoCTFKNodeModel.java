@@ -32,14 +32,17 @@ import static loci.knime.ctfire.nodes.goctfk.GoCTFKSettingsModels.createXLinkBox
 import io.scif.SCIFIO;
 import io.scif.img.ImgSaver;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -339,16 +342,14 @@ public class GoCTFKNodeModel extends NodeModel {
 
 				// -- Read .MAT data --
 
-				final BufferedReader matReader = new BufferedReader(
-					new FileReader(new File(
-					outDir + "ctFIREout_" + imgNames[idx].replace(".tif", ".mat"))));
+				final String matFilePath = outDir +
+						"ctFIREout_" + imgNames[idx].replace(".tif", ".mat");
+				final FileInputStream inputStream = FileUtils.openInputStream(new File(matFilePath));
 
-				final byte[] matData = IOUtils.toByteArray(matReader);
 				final BinaryObjectCellFactory boFac = new BinaryObjectCellFactory(exec);
-				final DataCell matCell = boFac.create(matData);
+				final DataCell matCell =
+					boFac.create(new BufferedInputStream(inputStream));
 				matContainer.addRowToTable(new DefaultRow("MAT data #" + idx, matCell));
-
-				matReader.close();
 
 				// -- Reading CSV data --
 

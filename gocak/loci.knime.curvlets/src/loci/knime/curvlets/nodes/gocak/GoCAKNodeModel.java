@@ -31,6 +31,7 @@ import org.knime.core.data.DataColumnSpec;
 import org.knime.core.data.DataColumnSpecCreator;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
+import org.knime.core.data.blob.BinaryObjectFileStoreDataCell;
 import org.knime.core.data.container.CloseableRowIterator;
 import org.knime.core.data.def.DefaultRow;
 import org.knime.core.data.def.DoubleCell;
@@ -117,7 +118,8 @@ public class GoCAKNodeModel extends NodeModel {
 	}
 
 	private DataColumnSpec[] createImgSpec() {
-		final DataColumnSpec[] spec = new DataColumnSpec[4];
+		final boolean advancedFiber = isAdvancedFiberMode();
+		final DataColumnSpec[] spec = new DataColumnSpec[advancedFiber ? 3: 4];
 
 		spec[0] =
 			new DataColumnSpecCreator("Source Image", ImgPlusCell.TYPE).createSpec();
@@ -125,8 +127,11 @@ public class GoCAKNodeModel extends NodeModel {
 			new DataColumnSpecCreator("Overlay", ImgPlusCell.TYPE).createSpec();
 		spec[2] =
 			new DataColumnSpecCreator("ProcMap", ImgPlusCell.TYPE).createSpec();
-		spec[3] =
-			new DataColumnSpecCreator("Reconstructed", ImgPlusCell.TYPE).createSpec();
+
+		if (!advancedFiber) {
+			spec[3] =
+					new DataColumnSpecCreator("Reconstructed", ImgPlusCell.TYPE).createSpec();
+		}
 
 		return spec;
 	}
@@ -141,6 +146,11 @@ public class GoCAKNodeModel extends NodeModel {
 		}
 
 		return spec;
+	}
+
+	private boolean isAdvancedFiberMode() {
+		return FiberModes.valueOfName(m_fiberModeModel.getStringValue()).compareTo(
+			FiberModes.CT) != 0;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -199,11 +209,26 @@ public class GoCAKNodeModel extends NodeModel {
 			imgNames[idx++] = imgName;
 		}
 
-		// Default to CT fiber mode if no MATLAB data file provided
-		FiberModes fiberMode = FiberModes.CT;
-		if (inData[1] != null) {
-			// TODO need to move the MAT data file to the temporary directory?
-			fiberMode = FiberModes.valueOfName(m_fiberModeModel.getStringValue());
+		BufferedDataContainer featureContainter =
+			exec.createDataContainer(new DataTableSpec(createFeatureSpec()));
+
+		BufferedDataContainer imgContainer =
+			exec.createDataContainer(new DataTableSpec(createImgSpec()));
+
+		FiberModes fiberMode = FiberModes.valueOfName(m_fiberModeModel.getStringValue());
+		final boolean isAdvancedFiberMode = isAdvancedFiberMode();
+
+		// Short-circuit if MAT data is requested and not available
+		if (isAdvancedFiberMode && inData[1] == null) {
+				setWarningMessage("WARNING: All fiber modes except \"CT\" require an" +
+					" input .MAT file, such as that created by the goCTFK node. Please " +
+					"select a different fiber mode or connect an appropriate input" +
+					" before execution.");
+				featureContainter.close();
+				imgContainer.close();
+
+				return new BufferedDataTable[] { featureContainter.getTable(),
+					imgContainer.getTable() };
 		}
 
 		// read CurveAlign parameters from node
@@ -219,22 +244,33 @@ public class GoCAKNodeModel extends NodeModel {
 			new File(tmpDir.getAbsolutePath() + "/parameters.txt");
 		parameters.createNewFile();
 
-		BufferedDataContainer featureContainter =
-			exec.createDataContainer(new DataTableSpec(createFeatureSpec()));
-
-		BufferedDataContainer imgContainer =
-			exec.createDataContainer(new DataTableSpec(createImgSpec()));
-
 		exec.setMessage("Processing image data in matlab.");
 		try {
 			idx = 0;
 			final CloseableRowIterator it2 = inData[0].iterator();
+			final CloseableRowIterator matIt =
+				inData[1] == null ? null : inData[1].iterator();
 			while (it2.hasNext()) {
 				final DataRow next = it2.next();
 
 				exec.setProgress((double) inData[0].getRowCount() / (double) idx);
 
 				parameterSet.updateImgPath(imgNames[idx]);
+
+				// If the fiber mode is not simple CT, then we need an input .MAT file.
+				if (fiberMode.compareTo(FiberModes.CT) != 0) {
+					if (matIt != null && matIt.hasNext()) {
+						final String tempMAT = tmpDir.getAbsolutePath() + File.separator + "ctFIREout_" + imgNames[idx].replace(".tif", ".mat");
+
+						final BinaryObjectFileStoreDataCell cell = (BinaryObjectFileStoreDataCell) matIt.next().getCell(0);
+						FileUtils.copyInputStreamToFile(cell.openInputStream(), new File(tempMAT));
+
+					}
+					else  {
+						setWarningMessage("WARNING: No CT-FIRE MAT data for image: " + imgNames[idx]);
+					}
+				}
+
 				BufferedWriter writer = new BufferedWriter(new FileWriter(parameters));
 				writer.append(parameterSet.createParameterString());
 				writer.close();
@@ -272,7 +308,7 @@ public class GoCAKNodeModel extends NodeModel {
 				csvReader.close();
 
 				// read created images
-				final DataCell[] imgs = new DataCell[4];
+				final DataCell[] imgs = new DataCell[isAdvancedFiberMode ? 3 : 4];
 				final ScifioImgSource imgOpener = new ScifioImgSource();
 
 				imgs[0] = next.getCell(idxImg);
@@ -287,9 +323,11 @@ public class GoCAKNodeModel extends NodeModel {
 						.getImg(outPath + imgNames[idx].replace(".tif", "") +
 							"_procmap.tiff", 0));
 
-				imgs[3] =
-					new ImgPlusCellFactory(exec).createCell(imgOpener.getImg(outPath +
-						imgNames[idx].replace(".tif", "") + "_reconstructed.tiff", 0));
+				if (!isAdvancedFiberMode) {
+					imgs[3] =
+							new ImgPlusCellFactory(exec).createCell(imgOpener.getImg(outPath +
+								imgNames[idx].replace(".tif", "") + "_reconstructed.tiff", 0));
+				}
 
 				imgOpener.close();
 
@@ -299,6 +337,7 @@ public class GoCAKNodeModel extends NodeModel {
 				idx++;
 			}
 			it2.close();
+			if (matIt != null) matIt.close();
 
 		}
 		finally {
