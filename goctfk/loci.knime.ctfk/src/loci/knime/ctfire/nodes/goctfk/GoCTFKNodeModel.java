@@ -391,7 +391,7 @@ public class GoCTFKNodeModel extends NodeModel {
 				// -- Reading Image data --
 
 				final DataCell[] imgs = new DataCell[3];
-				final ScifioImgSource imgOpener = new ScifioImgSource();
+				ScifioImgSource imgOpener = new ScifioImgSource();
 
 				// Original
 				imgs[0] = next.getCell(idxImg);
@@ -401,12 +401,13 @@ public class GoCTFKNodeModel extends NodeModel {
 					new ImgPlusCellFactory(exec).createCell(imgOpener
 						.getImg(outDir + "OL_ctFIRE_" + imgNames[idx], 0));
 
+				imgOpener.close();
+				imgOpener = new ScifioImgSource();
+
 				// Reconstruction
 				imgs[2] =
 					new ImgPlusCellFactory(exec).createCell(imgOpener
 						.getImg(outDir + "CTRimg_" + imgNames[idx], 0));
-
-				imgOpener.close();
 
 				overlayContainer.addRowToTable(new DefaultRow(next.getKey() + "#" + idx,
 					imgs));
@@ -416,11 +417,11 @@ public class GoCTFKNodeModel extends NodeModel {
 
 		}
 		finally {
-			FileUtils.deleteDirectory(tmpDir);
 			matContainer.close();
 			csvContainer.close();
 			overlayContainer.close();
 			scifio.getContext().dispose();
+			FileUtils.deleteDirectory(tmpDir);
 		}
 
 		return new BufferedDataTable[] { matContainer.getTable(),
