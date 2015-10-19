@@ -341,11 +341,11 @@ public class GoCAKNodeModel extends NodeModel {
 
 		}
 		finally {
-			FileUtils.deleteDirectory(tmpDir);
 			featureContainter.close();
 			imgContainer.close();
 			it.close();
 			scifio.context().dispose();
+			FileUtils.deleteDirectory(tmpDir);
 		}
 
 		return new BufferedDataTable[] { featureContainter.getTable(),
