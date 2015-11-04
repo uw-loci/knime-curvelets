@@ -517,7 +517,10 @@ public class GoCAKNodeModel extends NodeModel {
 			if (isWindows()) {
 				url =
 					new URL("platform:/plugin/loci.knime.curvlets/res/goCAK/goCAK.exe");
-
+			}
+			else if (isLinux()) {
+				url =
+					new URL("platform:/plugin/loci.knime.curvlets/res/goCAK/goCAK");
 			}
 			else if (isMac()) {
 				url =
@@ -533,40 +536,57 @@ public class GoCAKNodeModel extends NodeModel {
 		}
 	}
 
+	//TODO unify with CTFKNodeModel logic
+
 	protected void fillGoCAKEnv(Map<String, String> env) {
-		if (isMac()) {
-			try {
-				// TODO make the MCR path an option in the dialog ?
+		try {
+			final String cwd = new File(FileLocator.resolve(new URL(
+				"platform:/plugin/loci.knime.curvlets/res/goCAK/")).getFile())
+					.getAbsolutePath();
+			String mcrRoot;
+			File mcr = null;
+			String arch = null;
 
-				File mcr = new File("/Applications/MATLAB/MATLAB_Compiler_Runtime/");
-				if (!mcr.exists()) throw new IllegalStateException(
-					"No MATLAB Compiler Runtime found!");
+			if (isMac()) {
+				mcr = new File("/Applications/MATLAB/MATLAB_Compiler_Runtime/");
+				arch = "maci64";
+			}
+			else if (isLinux()) {
+				mcr = new File("/usr/local//MATLAB/MATLAB_Compiler_Runtime/");
+				arch = "glnxa64";
+			}
 
-				// Enter the version subdirectory, e.g. v716
+			// Enter the version subdirectory, e.g. v716
+
+			if (mcr != null) {
 				if (mcr.listFiles().length == 1) {
 					mcr = mcr.listFiles()[0];
 				}
 
-				String cwd;
-				cwd =
-					new File(FileLocator.resolve(
-						new URL("platform:/plugin/loci.knime.curvlets/res/goCAK/"))
-						.getFile()).getAbsolutePath();
+				if (!mcr.exists()) throw new IllegalStateException(
+					"No MATLAB Compiler Runtime found!");
 
-				final String mcrRoot = mcr.getAbsolutePath() + File.separator;
-				env.put("DYLD_LIBRARY_PATH", cwd + ":" + mcrRoot + "runtime/maci64:" +
-					mcrRoot + "bin/maci64:" + mcrRoot + "sys/os/maci64");
-				env.put("XAPPLRESDIR", mcrRoot + "X11/app-defaults");
+				mcrRoot = mcr.getAbsolutePath() + File.separator;
 
+				env.put("DYLD_LIBRARY_PATH", cwd + ":" + mcrRoot + "runtime/" + arch +
+					":" + mcrRoot + "bin/" + arch + ":" + mcrRoot + "sys/os/" + arch);
+
+				if (isMac()) env.put("XAPPLRESDIR", mcrRoot + "X11/app-defaults");
 			}
-			catch (IOException e) {
-				return;
-			}
+		}
+		catch (IOException e) {
+			NodeLogger.getLogger(GoCAKNodeModel.class).warn(
+				"MatLab GoCTFK: Failed to find MCR:\n\t" + e.getMessage());
+			return;
 		}
 	}
 
 	private static boolean isWindows() {
 		return (OS.indexOf("win") >= 0);
+	}
+
+	private static boolean isLinux() {
+		return (OS.indexOf("linux") >= 0);
 	}
 
 	private static boolean isMac() {
