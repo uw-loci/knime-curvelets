@@ -411,7 +411,7 @@ public class GoCTFKNodeModel extends NodeModel {
 
 				overlayContainer.addRowToTable(new DefaultRow(next.getKey() + "#" + idx,
 					imgs));
-
+				imgOpener.close();
 				idx++;
 			}
 
